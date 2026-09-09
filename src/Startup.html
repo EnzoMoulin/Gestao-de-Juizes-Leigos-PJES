@@ -1,0 +1,31 @@
+<script>
+// Este bloco deve ser carregado antes de App.html: um erro de sintaxe no
+// próximo script não pode impedir a exibição desta mensagem de recuperação.
+(function () {
+  function stillStarting() {
+    var loading = document.getElementById('loading');
+    var app = document.getElementById('app');
+    return loading && !loading.hidden && app && app.hidden;
+  }
+  function showStartupFailure(message) {
+    if (!stillStarting()) return;
+    document.getElementById('loading').hidden = true;
+    document.getElementById('login').hidden = false;
+    document.getElementById('loginError').textContent = message;
+  }
+  window.addEventListener('error', function (event) {
+    if (!event.message) return;
+    showStartupFailure('Não foi possível iniciar o site. ' + event.message +
+      ' Confira se todos os arquivos foram atualizados e publique uma nova versão no Apps Script.');
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event.reason;
+    showStartupFailure('A inicialização falhou. ' +
+      (reason && reason.message ? reason.message : 'Recarregue a página e tente novamente.'));
+  });
+  // O login pode envolver até três chamadas sequenciais, limitadas a 20 s cada.
+  setTimeout(function () {
+    showStartupFailure('A inicialização demorou mais que o esperado. Recarregue a página. Se persistir, confira a versão publicada e o console do navegador.');
+  }, 75000);
+}());
+</script>

@@ -116,3 +116,13 @@ Após esta atualização, uma nova autorização será solicitada porque o aplic
 ## Entrada pelo formulário e teste do ciclo completo
 
 Para criar um formulário de homologação conectado à planilha usada pelo site, siga [a instalação e o roteiro de teste](maintenance/README.md#formulário-de-teste-formulário--planilha--site). O instalador fica no projeto separado de manutenção e contempla solicitações de unidades e disponibilidade de juízes leigos, com importação por gatilho e proteção contra duplicação. Também é possível testar a leitura do site acrescentando registros manualmente ao final da aba de origem.
+
+## Se a página ficar em “Carregando dados”
+
+Um `SyntaxError` no console impede que `App.html` execute até mesmo o login. Atualize o conteúdo completo dos arquivos; não misture trechos de versões diferentes. A proteção `src/Startup.html`, incluída antes de `App.html`, mostra falhas de inicialização na tela, inclusive quando o script principal não consegue iniciar.
+
+Para esta atualização, envie todo o diretório `src` com `clasp push`, ou copie os arquivos completos no editor, incluindo o novo arquivo HTML `Startup`. Depois publique **Nova versão** em **Implantar → Gerenciar implantações → Editar** e reabra a URL `/exec`. Apenas salvar no editor ou atualizar o GitHub não muda uma implantação versionada.
+
+Se o console continuar mostrando `Unexpected identifier 'input'`, abra o link da linha do erro (por exemplo `VM42:98`) e confira o código efetivamente entregue ao navegador. O número da linha do script gerado pode diferir do arquivo no repositório. O erro 403 em `/wardeninit` precisa ser investigado separadamente se persistir; este código não chama esse endpoint.
+
+Teste local da inicialização: `node tests/startup.js`.

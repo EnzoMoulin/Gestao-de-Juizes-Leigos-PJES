@@ -95,7 +95,32 @@ $('saveUserButton').onclick=async()=>{const button=$('saveUserButton'),original=
 
 async function setActiveTab(tabName){const panels={requests:'requestsPanel',judges:'judgesPanel',tutorial:'tutorialPanel',admin:'adminPanel'};if(!panels[tabName]||(tabName==='admin'&&!state.data.permissoes.administrar))return;document.querySelectorAll('.tab').forEach(button=>{button.classList.toggle('active',button.dataset.tab===tabName);button.setAttribute('aria-current',button.dataset.tab===tabName?'page':'false');});Object.entries(panels).forEach(([name,id])=>$(id).hidden=name!==tabName);if(tabName==='admin')await loadUsers();window.scrollTo({top:0,behavior:'smooth'});}
 
-const tourSteps=[['Visão geral','Os indicadores mostram volume, pendências, atrasos e solicitações sem juiz. Clique nos alertas para filtrar a fila.'],['Solicitações','Use a busca e os filtro…420 tokens truncated…er('input',renderJudges);
-setInterval(()=>{if(state.token&&state.data&&!document.hidden&&!state.saving&&!document.querySelector('dialog[open]')&&$('autoRefresh').checked)loadData(true);},60000);
+const tourSteps=[['Visão geral','Os indicadores mostram volume, pendências, atrasos e solicitações sem juiz. Clique nos alertas para filtrar a fila.'],['Solicitações','Use a busca e os filtros para localizar demandas. “Ver detalhes” abre todas as informações e o histórico.'],['Gestão','Em “Gerenciar”, primeiro defina prioridade e prazo, depois designe um juiz ou atualize o andamento.'],['Capacidade','A aba “Juízes e capacidade” mostra carga utilizada, saldo e alertas de lotação.'],['Ajuda permanente','A aba Tutorial mantém todas as instruções disponíveis. Administradores também possuem a aba Usuários.']];
+function startTour(){state.tourStep=0;renderTourStep();$('tourDialog').showModal();}
+function renderTourStep(){const step=tourSteps[state.tourStep];$('tourCounter').textContent='Etapa '+(state.tourStep+1)+' de '+tourSteps.length;$('tourTitle').textContent=step[0];$('tourText').textContent=step[1];$('tourNextButton').textContent=state.tourStep===tourSteps.length-1?'Concluir':'Próximo';}
+function nextTourStep(){if(state.tourStep>=tourSteps.length-1)return closeTour();state.tourStep++;renderTourStep();}
+function closeTour(){storage('localStorage','setItem','jl_tour_done','1');$('tourDialog').close();}
+
+async function logout(){try{await server('apiLogout',state.token);}finally{storage('sessionStorage','removeItem','jl_session');state.token='';showLogin();}}
+// Registre os eventos separadamente para facilitar a conferência no editor.
+$('search').addEventListener('input', renderRequests);
+const requestSelectIds = [
+  'statusFilter', 'priorityFilter', 'judgeFilter',
+  'unitFilter', 'flagFilter', 'sortFilter'
+];
+requestSelectIds.forEach(function (id) {
+  $(id).addEventListener('change', renderRequests);
+});
+$('editJudge').addEventListener('change', updateAssignmentCapacity);
+document.querySelectorAll('.tab').forEach(function (button) {
+  button.onclick = function () { return setActiveTab(button.dataset.tab); };
+});
+$('judgeSearch').addEventListener('input', renderJudges);
+setInterval(function () {
+  if (state.token && state.data && !document.hidden && !state.saving &&
+      !document.querySelector('dialog[open]') && $('autoRefresh').checked) {
+    loadData(true);
+  }
+}, 60000);
 boot();
 </script>

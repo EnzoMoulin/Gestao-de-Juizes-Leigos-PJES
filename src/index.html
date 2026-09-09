@@ -15,7 +15,7 @@
       <h1><?= appName ?></h1>
       <p>Acesso restrito às contas institucionais autorizadas do Google Workspace do TJES.</p>
       <p>O sistema identificará automaticamente a conta com a qual você está conectado.</p>
-      <button type="button" class="secondary" onclick="boot()">Tentar novamente</button>
+      <button type="button" class="secondary" onclick="if (typeof boot === 'function') { boot(); } else { window.location.reload(); }">Tentar novamente</button>
       <p id="loginError" class="error" role="alert"></p>
     </section>
   </main>
@@ -126,6 +126,7 @@
 
   <dialog id="tourDialog" class="tour-dialog"><div class="tour-content"><p id="tourCounter" class="eyebrow"></p><h2 id="tourTitle"></h2><p id="tourText"></p><div class="dialog-actions"><button class="secondary" type="button" onclick="closeTour()">Fechar</button><button id="tourNextButton" type="button" onclick="nextTourStep()">Próximo</button></div></div></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
+  <?!= include_('Startup'); ?>
   <?!= include_('App'); ?>
 </body>
 </html>
