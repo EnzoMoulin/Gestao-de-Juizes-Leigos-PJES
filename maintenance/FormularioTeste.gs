@@ -20,7 +20,7 @@ function fonteFormulario_() {
   const book = SpreadsheetApp.openById(id);
   const sheet = book.getSheetByName(nome);
   if (!sheet || !sheet.getLastColumn()) throw new Error('Aba de origem ausente ou vazia: ' + nome);
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0].map(v => String(v).trim());
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0].map(normalizarCabecalhoOrigem_);
   Object.values(JL_CONFIG.HEADERS).forEach(title => {
     if (headers.indexOf(title) < 0 || headers.indexOf(title) !== headers.lastIndexOf(title)) {
       throw new Error('Cabeçalho ausente ou duplicado: ' + title);

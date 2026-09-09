@@ -72,3 +72,15 @@ No site, abra **Fonte dos dados · de onde vêm as respostas?** com perfil gesto
 Execute `diagnosticarFormularioTeste` na manutenção para conferir o destino, se o formulário aceita respostas, a quantidade de gatilhos da conta executora e os totais de respostas importadas e pendentes. Se houver pendências, consulte as Execuções e use `reprocessarRespostasFormularioTeste` após corrigir a causa. Esse diagnóstico não testa o login no formulário nem a implantação do site.
 
 O título visível do site passa a usar o mesmo nome completo configurado para a página: **PJES - CONECTA JULES - Gestão de Juízes Leigos**.
+
+### Modelo original com minutas na coluna G
+
+A ordem de referência é: A data/hora; B e-mail; C nome; D telefone; E cargo; F unidade; G minutas; H processos; I orientações; J preferência de juiz; K matérias; L produtividade; M status; N observações do atendimento; O competências; P juiz designado; Q data da designação; R identificador do envio.
+
+O instalador já apresenta as perguntas nessa sequência relativa, sem pedir ao respondente os campos administrativos. Carimbo de data/hora e identificador são automáticos; o status inicial é Pendente; designação e observações administrativas ficam sob gestão do site. O importador escreve pelos cabeçalhos da aba de origem, preservando a ordem física existente mesmo que a aba bruta do Forms tenha outra disposição.
+
+Para compatibilidade com o modelo enviado, o título `Competências necessárias — coluna duplicada (revisar)` é reconhecido como alias de `Status do Atendimento:`. A coluna continua sendo status e seus valores existentes são preservados. `Competências necessárias (opcional):` continua sendo o campo de competências, separado do status. Se ambos os títulos de status existirem ao mesmo tempo, a leitura interrompe por ambiguidade. Não se deve criar uma segunda coluna de status.
+
+Não é necessário recriar o formulário para essa compatibilidade. Atualize `Config.gs` e `Data.gs` no projeto do site e publique uma nova versão. No projeto de manutenção, atualize `PrepararPlanilha.gs` e `FormularioTeste.gs`. Não copie a configuração da manutenção para o projeto do site.
+
+O código não move valores de respostas antigas: links ou nomes que já estejam sob um título inadequado precisam de revisão individual na planilha. A compatibilidade de cabeçalhos não corrige dados históricos deslocados.

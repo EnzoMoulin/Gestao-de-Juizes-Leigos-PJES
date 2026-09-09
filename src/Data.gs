@@ -12,7 +12,7 @@ function obterFonte_() {
 function mapaCabecalhos_(aba) {
   const cabecalhos = aba.getRange(1, 1, 1, aba.getLastColumn()).getDisplayValues()[0];
   const mapa = {};
-  cabecalhos.forEach((valor, indice) => { const titulo = String(valor).trim(); if (titulo && mapa[titulo] !== undefined) throw new Error("Cabeçalho duplicado: " + titulo); mapa[titulo] = indice; });
+  cabecalhos.forEach((valor, indice) => { const titulo = normalizarCabecalhoOrigem_(valor); if (titulo && mapa[titulo] !== undefined) throw new Error("Cabeçalho duplicado: " + titulo); mapa[titulo] = indice; });
   Object.keys(JL_CONFIG.HEADERS).forEach(chave => {
     const titulo = JL_CONFIG.HEADERS[chave];
     if (mapa[titulo] === undefined) throw new Error("Cabeçalho obrigatório ausente: " + titulo);

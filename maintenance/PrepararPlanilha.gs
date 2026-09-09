@@ -30,10 +30,10 @@ var JL_CONFIG = Object.freeze({
     PHONE: "Telefone para contato:",
     FUNCTION: "Cargo ou Função:",
     UNIT: "Unidade Judiciária que receberá o auxílio da Juíza Leiga ou do Juiz Leigo:",
+    CAPACITY: "Número de minutas em que necessita trabalhar no mês atual:",
     CASES: "Número(s) do(s) Processo(s) - um por linha (opcional - preencher apenas se desejar a análise de processos específicos):",
     GUIDANCE: "Orientações sobre a elaboração das minutas (opcional - caso deseje compartilhar modelos de documentos ou prompts, anexar o link do documento ou pasta do Google Drive):",
     PREFERRED_JUDGE: "Deseja indicar alguma Juíza ou Juiz Leigo de sua preferência? (A indicação não é vinculante e dependerá da disponibilidade e prioridade de atendimento)",
-    CAPACITY: "Número de minutas em que necessita trabalhar no mês atual:",
     SUBJECTS: "Preferência por matérias (opcional):",
     PRODUCTIVITY: "Observações sobre a atuação e meta de produtividade:",
     STATUS: "Status do Atendimento:",
@@ -65,7 +65,7 @@ function prepararPlanilha() {
   const nomeFonte = String(PropertiesService.getScriptProperties().getProperty("SOURCE_SHEET") || JL_CONFIG.SOURCE_SHEET).trim();
   const fonte = planilha.getSheetByName(nomeFonte);
   if (!fonte || fonte.getLastColumn() === 0) throw new Error("Aba de respostas ausente ou vazia: " + nomeFonte);
-  const cabecalhos = fonte.getRange(1, 1, 1, fonte.getLastColumn()).getDisplayValues()[0].map(String).map(item => item.trim());
+  const cabecalhos = fonte.getRange(1, 1, 1, fonte.getLastColumn()).getDisplayValues()[0].map(normalizarCabecalhoOrigem_);
   Object.values(JL_CONFIG.HEADERS).forEach(titulo => {
     if (!cabecalhos.includes(titulo)) throw new Error("Cabeçalho obrigatório ausente na origem: " + titulo);
     if (cabecalhos.indexOf(titulo) !== cabecalhos.lastIndexOf(titulo)) throw new Error("Cabeçalho duplicado na origem: " + titulo);
@@ -93,4 +93,12 @@ function prepararPlanilha() {
   const mensagem = "Planilha preparada: " + planilha.getName() + " | Origem: " + nomeFonte + " | Abas auxiliares verificadas. As permissões e a implantação do site não foram alteradas.";
   console.log(mensagem);
   return mensagem;
+}
+
+// Compatibilidade com o cabeçalho da coluna de status no modelo fornecido.
+// Apenas resolve o nome em memória; não altera títulos, células ou posições.
+function normalizarCabecalhoOrigem_(valor) {
+  const titulo = String(valor || '').trim();
+  return titulo === 'Competências necessárias — coluna duplicada (revisar)'
+    ? JL_CONFIG.HEADERS.STATUS : titulo;
 }

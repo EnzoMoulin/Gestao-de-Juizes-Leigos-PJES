@@ -50,3 +50,37 @@ metadata[1][1] = 'https://docs.google.com/forms/d/e/test/viewform'; metadata[3][
 assert.equal(context.diagnosticoFormulario_(metaBook, metaSource).configurado, false);
 assert.equal(context.diagnosticoFormulario_({getSheetByName: () => null}, metaSource).configurado, false);
 console.log('Form metadata tests passed: destination binding, missing configuration and unsafe URLs.');
+// Exact supplied layout: quantity G, processes H, guidance I, preference J;
+// the supplied M heading contains status values, not skills.
+props.SPREADSHEET_ID = 'book';
+rows.length = 0;
+const originalLayout = Object.values(h);
+assert.equal(originalLayout[6], h.CAPACITY);
+assert.equal(originalLayout[7], h.CASES);
+assert.equal(originalLayout[8], h.GUIDANCE);
+assert.equal(originalLayout[9], h.PREFERRED_JUDGE);
+originalLayout[12] = 'Competências necessárias — coluna duplicada (revisar)';
+rows.push([...originalLayout, 'FORM_RESPONSE_ID']);
+context.receberRespostaFormulario(event(response('modelo', {
+  [h.CASES]: 'PROCESSO TESTE', [h.GUIDANCE]: 'ORIENTAÇÃO TESTE',
+  [h.PREFERRED_JUDGE]: 'PREFERÊNCIA TESTE', [h.SKILLS]: 'MATÉRIA TESTE'
+})));
+assert.equal(rows[1][6], '12');
+assert.equal(rows[1][7], 'PROCESSO TESTE');
+assert.equal(rows[1][8], 'ORIENTAÇÃO TESTE');
+assert.equal(rows[1][9], 'PREFERÊNCIA TESTE');
+assert.equal(rows[1][12], 'Pendente');
+assert.equal(rows[1][14], 'MATÉRIA TESTE');
+assert.equal(rows[1][17], 'modelo');
+assert.equal(rows[0][12], 'Competências necessárias — coluna duplicada (revisar)');
+const mapped = context.mapaCabecalhos_(sheet);
+assert.equal(mapped[h.STATUS], 12);
+assert.equal(mapped[h.SKILLS], 14);
+rows[1][12] = 'Concluído';
+assert.equal(context.statusNormalizado_(context.valor_(rows[1], mapped, 'STATUS')), 'Concluído');
+context.receberRespostaFormulario(event(response('modelo')));
+assert.equal(rows.length, 2); assert.equal(rows[1][12], 'Concluído');
+rows[0].push(h.STATUS);
+assert.throws(() => context.mapaCabecalhos_(sheet), /duplicado/);
+assert.throws(() => context.fonteFormulario_(), /duplicado/);
+console.log('Original layout tests passed: all positions, legacy status, existing data preserved and ambiguous status rejected.');

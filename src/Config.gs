@@ -28,10 +28,10 @@ var JL_CONFIG = Object.freeze({
     PHONE: "Telefone para contato:",
     FUNCTION: "Cargo ou Função:",
     UNIT: "Unidade Judiciária que receberá o auxílio da Juíza Leiga ou do Juiz Leigo:",
+    CAPACITY: "Número de minutas em que necessita trabalhar no mês atual:",
     CASES: "Número(s) do(s) Processo(s) - um por linha (opcional - preencher apenas se desejar a análise de processos específicos):",
     GUIDANCE: "Orientações sobre a elaboração das minutas (opcional - caso deseje compartilhar modelos de documentos ou prompts, anexar o link do documento ou pasta do Google Drive):",
     PREFERRED_JUDGE: "Deseja indicar alguma Juíza ou Juiz Leigo de sua preferência? (A indicação não é vinculante e dependerá da disponibilidade e prioridade de atendimento)",
-    CAPACITY: "Número de minutas em que necessita trabalhar no mês atual:",
     SUBJECTS: "Preferência por matérias (opcional):",
     PRODUCTIVITY: "Observações sobre a atuação e meta de produtividade:",
     STATUS: "Status do Atendimento:",
@@ -51,4 +51,12 @@ function propriedadeObrigatoria_(nome) {
 function dominioInstitucional_() {
   return String(PropertiesService.getScriptProperties().getProperty(JL_CONFIG.PROPERTIES.DOMAIN) || JL_CONFIG.DEFAULT_DOMAIN)
     .trim().toLowerCase();
+}
+
+// Compatibilidade com o cabeçalho da coluna de status no modelo fornecido.
+// Apenas resolve o nome em memória; não altera títulos, células ou posições.
+function normalizarCabecalhoOrigem_(valor) {
+  const titulo = String(valor || '').trim();
+  return titulo === 'Competências necessárias — coluna duplicada (revisar)'
+    ? JL_CONFIG.HEADERS.STATUS : titulo;
 }
