@@ -22,7 +22,7 @@
 
   <div id="app" hidden>
     <header class="topbar">
-      <div class="brand-title"><strong>PJES · CONECTA JULES</strong><span>Gestão de Juízes Leigos</span></div>
+      <div class="brand-title"><strong><?= appName ?></strong></div>
       <div class="user-area">
         <div class="user-copy"><strong id="userName"></strong><small id="userEmail"></small></div>
         <span id="userRole" class="role"></span>
@@ -38,7 +38,7 @@
 
       <div class="sync-controls"><label class="checkbox-label"><input id="autoRefresh" type="checkbox" checked> Atualizar automaticamente a cada minuto</label><span>Atualização pausada durante a edição.</span></div>
       <p id="refreshStatus" class="error" role="alert" hidden></p>
-      <details id="sourceDetails" class="source-details" hidden><summary>Fonte dos dados · de onde vêm as respostas?</summary><p id="sourceName"></p><p id="sourceCounts"></p><small id="sourceId"></small><p><a id="sourceLink" target="_blank" rel="noopener noreferrer">Abrir planilha de origem</a></p><p id="sourceWarnings" class="error" role="status"></p><p>Uma resposta de juiz leigo aparece em <strong>Juízes e capacidade</strong>. Respostas de magistrados e assessores aparecem em <strong>Solicitações</strong>. O formulário original e sua cópia não são mesclados automaticamente.</p></details>
+      <details id="sourceDetails" class="source-details" hidden><summary>Fonte dos dados · de onde vêm as respostas?</summary><p id="sourceName"></p><p id="sourceCounts"></p><small id="sourceId"></small><p><a id="sourceLink" target="_blank" rel="noopener noreferrer">Abrir planilha de origem</a></p><p id="formStatus" role="status"></p><p><a id="formLink" target="_blank" rel="noopener noreferrer" hidden>Abrir formulário de teste</a></p><p id="formImports"></p><p>Após enviar, clique em Atualizar ou aguarde a atualização automática com a página visível e sem uma edição aberta.</p><p id="sourceWarnings" class="error" role="status"></p><p>Uma resposta de juiz leigo aparece em <strong>Juízes e capacidade</strong>. Respostas de magistrados e assessores aparecem em <strong>Solicitações</strong>. O formulário original e sua cópia não são mesclados automaticamente.</p></details>
       <section id="managementNotice" class="notice" hidden><strong>Acesso de gestão ativo</strong><span>Você pode definir prioridades, prazos, designar juízes e atualizar o andamento.</span></section>
       <section id="operationalAlerts" class="alerts" aria-label="Alertas operacionais"></section>
       <section id="metrics" class="metrics" aria-label="Indicadores"></section>

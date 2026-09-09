@@ -39,3 +39,14 @@ email = 'visitor@tjes.jus.br'; assert.throws(() => context.receberRespostaFormul
 email = props.ADMIN_EMAILS; props.SPREADSHEET_ID = 'other'; assert.throws(() => context.receberRespostaFormulario(event(response('r3'))), /destino mudou/);
 assert.equal(rows.length, 3); assert(releases >= 7);
 console.log('Forms tests passed: mapping, classification, deduplication, protected fields, formula escaping, validation, authorization and destination binding.');
+// Metadata must bind the respondent link to the exact source and allow only Forms URLs.
+vm.runInContext(fs.readFileSync('src/FormIntegration.gs', 'utf8'), context);
+let metadata = [['CHAVE','VALOR'],['FORM_URL','https://docs.google.com/forms/d/e/test/viewform'],['SPREADSHEET_ID','book'],['SOURCE_SHEET','Source']];
+const metaBook = {getId: () => 'book', getSheetByName: () => ({getLastRow: () => metadata.length, getRange: () => ({getDisplayValues: () => metadata})})};
+const metaSource = {getName: () => 'Source'};
+assert.equal(context.diagnosticoFormulario_(metaBook, metaSource).configurado, true);
+metadata[1][1] = 'javascript:alert(1)'; assert.equal(context.diagnosticoFormulario_(metaBook, metaSource).configurado, false);
+metadata[1][1] = 'https://docs.google.com/forms/d/e/test/viewform'; metadata[3][1] = 'Outra aba';
+assert.equal(context.diagnosticoFormulario_(metaBook, metaSource).configurado, false);
+assert.equal(context.diagnosticoFormulario_({getSheetByName: () => null}, metaSource).configurado, false);
+console.log('Form metadata tests passed: destination binding, missing configuration and unsafe URLs.');

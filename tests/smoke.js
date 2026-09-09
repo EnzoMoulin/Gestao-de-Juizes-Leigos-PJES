@@ -32,7 +32,7 @@ const context = vm.createContext({
   MailApp: { sendEmail: options => sentEmails.push(options) }
 });
 
-for (const file of ['Config.gs', 'Management.gs', 'Data.gs', 'Auth.gs', 'Users.gs', 'API.gs', 'Main.gs']) {
+for (const file of ['Config.gs', 'Management.gs', 'FormIntegration.gs', 'Data.gs', 'Auth.gs', 'Users.gs', 'API.gs', 'Main.gs']) {
   vm.runInContext(fs.readFileSync('src/' + file, 'utf8'), context, { filename: file });
 }
 const call = expression => vm.runInContext(expression, context);

@@ -77,6 +77,7 @@ function prepararFormularioTeste() {
       if (source.sheet.getMaxColumns() < col) source.sheet.insertColumnsAfter(source.sheet.getMaxColumns(), 1);
       source.sheet.getRange(1, col).setValue('FORM_RESPONSE_ID');
     }
+    registrarFormularioNaPlanilha_(source, form);
     // O administrador revisa publicação e permissões de respondentes antes de abrir.
     const result = {formulario: form.getPublishedUrl(), editar: form.getEditUrl(), planilha: source.book.getUrl(), abaDoSite: source.nome};
     console.log(JSON.stringify(result));
@@ -143,4 +144,35 @@ function reprocessarRespostasFormularioTeste() {
   });
   console.log(JSON.stringify({importadas: importadas, falhas: falhas}));
   return {importadas: importadas, falhas: falhas};
+}
+
+// Não depende de propriedades do projeto do site: ambos leem a mesma planilha.
+function registrarFormularioNaPlanilha_(source, form) {
+  let sheet = source.book.getSheetByName('JL_FORMULARIO');
+  if (sheet && sheet.getLastRow()) {
+    const headers = sheet.getRange(1, 1, 1, 2).getDisplayValues()[0];
+    if (headers[0] !== 'CHAVE' || headers[1] !== 'VALOR') throw new Error('A aba JL_FORMULARIO já existe com outra estrutura. Nenhum metadado foi substituído.');
+  }
+  if (!sheet) sheet = source.book.insertSheet('JL_FORMULARIO');
+  const rows = [['CHAVE', 'VALOR'], ['FORM_URL', form.getPublishedUrl()],
+    ['SPREADSHEET_ID', source.book.getId()], ['SOURCE_SHEET', source.nome]];
+  sheet.getRange(1, 1, rows.length, 2).setValues(rows);
+}
+
+function diagnosticarFormularioTeste() {
+  autorizarFormulario_();
+  const source = fonteFormulario_();
+  const form = FormApp.openById(propriedadeObrigatoria_('TEST_FORM_ID'));
+  const idIndex = source.headers.indexOf('FORM_RESPONSE_ID');
+  const count = source.sheet.getLastRow() - 1;
+  const imported = new Set(idIndex >= 0 && count > 0 ? source.sheet.getRange(2, idIndex + 1, count, 1).getDisplayValues().map(row => row[0]).filter(Boolean) : []);
+  const responses = form.getResponses();
+  const pendentes = responses.filter(response => !imported.has(String(response.getId()))).length;
+  const triggers = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'receberRespostaFormulario' && t.getTriggerSourceId() === form.getId());
+  const result = {formulario: form.getPublishedUrl(), planilha: source.book.getUrl(), abaDoSite: source.nome,
+    destinoCorreto: form.getDestinationId() === source.book.getId(), aceitaRespostas: form.isAcceptingResponses(),
+    gatilhosDaConta: triggers.length, respostasNoFormulario: responses.length,
+    importadasDesteFormulario: responses.length - pendentes, pendentesDeImportacao: pendentes};
+  console.log(JSON.stringify(result));
+  return result;
 }

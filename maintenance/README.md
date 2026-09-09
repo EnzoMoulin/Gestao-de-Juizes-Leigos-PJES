@@ -62,3 +62,13 @@ Use um usuário `GESTOR` ou `ADMIN` no site para ver ambos os tipos de entrada. 
 - O reprocessamento percorre todas as respostas; destina-se ao piloto. Grandes volumes podem atingir limites de execução do Apps Script.
 
 Validação local: `node tests/forms.js`, `node tests/maintenance.js`, `node tests/smoke.js` e `node tests/regression.js`. Os testes usam simulações de serviços Google; o envio real, a publicação e as permissões precisam ser homologados na conta institucional.
+
+### Conferência no site e diagnóstico de envios
+
+Após atualizar os arquivos do site (incluindo `src/FormIntegration.gs`) e publicar uma nova versão do Web App, execute novamente `prepararFormularioTeste` no projeto de manutenção atualizado. O instalador registra o link para respondentes e a fonte na aba auxiliar `JL_FORMULARIO`, sem depender de propriedades compartilhadas entre projetos.
+
+No site, abra **Fonte dos dados · de onde vêm as respostas?** com perfil gestor ou administrador. O painel informa o formulário configurado, oferece o link para responder e mostra quantas linhas da origem possuem identificador de importação. A mensagem de formulário configurado não confirma publicação, permissões ou funcionamento do gatilho: faça um envio real para essa verificação.
+
+Execute `diagnosticarFormularioTeste` na manutenção para conferir o destino, se o formulário aceita respostas, a quantidade de gatilhos da conta executora e os totais de respostas importadas e pendentes. Se houver pendências, consulte as Execuções e use `reprocessarRespostasFormularioTeste` após corrigir a causa. Esse diagnóstico não testa o login no formulário nem a implantação do site.
+
+O título visível do site passa a usar o mesmo nome completo configurado para a página: **PJES - CONECTA JULES - Gestão de Juízes Leigos**.

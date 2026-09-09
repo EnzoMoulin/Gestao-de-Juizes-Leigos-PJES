@@ -142,7 +142,9 @@ function listarDados_(usuario) {
     respostas: respostas, solicitacoes: todasSolicitacoes.length, juizesAtivos: juizes.length,
     juizesEncerrados: juizesEncerrados, ignoradas: ignoradas.slice(0, 20),
     totalIgnoradas: ignoradas.length, statusDesconhecidos: statusDesconhecidos.slice(0, 20),
-    ultimaLinha: aba.getLastRow()
+    ultimaLinha: aba.getLastRow(),
+    formulario: diagnosticoFormulario_(planilha, aba),
+    respostasImportadas: mapa.FORM_RESPONSE_ID === undefined ? 0 : linhasExibidas.filter(linha => String(linha[mapa.FORM_RESPONSE_ID] || '').trim()).length
   } : null;
   return { solicitacoes: solicitacoes, todasSolicitacoes: todasSolicitacoes, juizes: juizes, fonte: fonte };
 }

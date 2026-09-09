@@ -5,7 +5,7 @@ const props = { SPREADSHEET_ID:'fixture', ADMIN_EMAILS:'admin@tjes.jus.br', ALLO
 let active = 'admin@tjes.jus.br';
 let writes = 0;
 const ctx = vm.createContext({ console, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||''})}, Session:{getActiveUser:()=>({getEmail:()=>active}),getScriptTimeZone:()=> 'America/Sao_Paulo'}, Utilities:{formatDate:d=>d.toISOString().slice(0,10),DigestAlgorithm:{SHA_256:1},computeDigest:()=>[],base64EncodeWebSafe:()=> 'hash'}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})} });
-for(const name of ['Config','Management','Data','Auth','Users','API']) vm.runInContext(fs.readFileSync('src/'+name+'.gs','utf8'),ctx);
+for(const name of ['Config','Management','FormIntegration','Data','Auth','Users','API']) vm.runInContext(fs.readFileSync('src/'+name+'.gs','utf8'),ctx);
 const run = code => vm.runInContext(code,ctx);
 const headers = run('JL_CONFIG.HEADERS');
 const titles = Object.values(headers);
