@@ -142,3 +142,10 @@ assert.equal(rows[2][9], '20');
 context.receberRespostaFormulario(event(requestWithoutCapacity));
 assert.equal(rows.length, 3);
 console.log('Official form tests passed: collected email, optional unit quantity, checkbox values, 19-column source and website classification.');
+// Historic questions retained outside respondent routes still map to canonical columns.
+rows.length = 0; rows.push([...Object.values(h), 'FORM_RESPONSE_ID']);
+context.receberRespostaFormulario(event(response('historic-layout', {
+  [h.SKILLS]: '', ['[Histórico] ' + h.SKILLS]: 'Juizado Especial Cível'
+})));
+assert.equal(rows[1][rows[0].indexOf(h.SKILLS)], 'Juizado Especial Cível');
+console.log('Archived question responses still import without empty-answer collisions.');

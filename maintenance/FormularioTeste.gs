@@ -199,8 +199,10 @@ function prepararFormularioTeste() {
       p.setProperty('TEST_FORM_READY', 'TRUE');
     }
 
-    atualizarCargosFormulario_(form);
-    ajustarCamposFormulario_(form);
+    if (p.getProperty('TEST_FORM_LAYOUT_BY_ROLE') !== 'TRUE') {
+      atualizarCargosFormulario_(form);
+      ajustarCamposFormulario_(form);
+    }
 
     const triggers = ScriptApp.getProjectTriggers().filter(t =>
       t.getHandlerFunction() === 'receberRespostaFormulario' &&
@@ -294,7 +296,9 @@ function importarRespostaFormulario_(response) {
     const answers = {};
 
     response.getItemResponses().forEach(item => {
-      const title = item.getItem().getTitle().trim();
+      const title = item.getItem().getTitle().trim().replace(/^\[Histórico\] /, '');
+      const raw = item.getResponse();
+      if (raw == null || raw === '' || (Array.isArray(raw) && !raw.length)) return;
 
       if (Object.prototype.hasOwnProperty.call(answers, title)) {
         throw new Error('Pergunta duplicada: ' + title);
