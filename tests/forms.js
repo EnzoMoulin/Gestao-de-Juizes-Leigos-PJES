@@ -84,3 +84,61 @@ rows[0].push(h.STATUS);
 assert.throws(() => context.mapaCabecalhos_(sheet), /duplicado/);
 assert.throws(() => context.fonteFormulario_(), /duplicado/);
 console.log('Original layout tests passed: all positions, legacy status, existing data preserved and ambiguous status rejected.');
+// Canonical options match the exact-match FILTER formulas in the workbook.
+rows.length = 0;
+rows.push([...Object.values(h), 'FORM_RESPONSE_ID']);
+const roles = [
+  ['Magistrado(a)', 'Magistrada ou Magistrado'],
+  ['Assessor(a)', 'Assessora ou Assessor'],
+  ['Juiz Leigo', 'Juíza Leiga ou Juiz Leigo'],
+  ['Juíza Leiga', 'Juíza Leiga ou Juiz Leigo'],
+  ['Magistrada ou Magistrado', 'Magistrada ou Magistrado'],
+  ['Assessora ou Assessor', 'Assessora ou Assessor'],
+  ['Juíza Leiga ou Juiz Leigo', 'Juíza Leiga ou Juiz Leigo']
+];
+roles.forEach(([input, expected], index) => {
+  context.receberRespostaFormulario(event(response('role-' + index, {[h.FUNCTION]: input})));
+  assert.equal(rows[index + 1][4], expected);
+});
+for (const role of ['Magistrado(a)', 'Assessor(a)', 'Magistrada ou Magistrado', 'Assessora ou Assessor']) {
+  assert.throws(() => context.receberRespostaFormulario(event(response('no-unit-' + role, {[h.FUNCTION]: role, [h.UNIT]: ''}))), /unidade/);
+}
+context.receberRespostaFormulario(event(response('judge-no-unit', {[h.FUNCTION]: 'Juíza Leiga ou Juiz Leigo', [h.UNIT]: ''})));
+let choices = ['Juiz Leigo'], choiceWrites = 0;
+const question = {getTitle: () => h.FUNCTION, getType: () => 'LIST', asListItem() {return this;}, getChoices: () => choices.map(value => ({getValue: () => value})), setChoiceValues(values) {choices = Array.from(values); choiceWrites++;}};
+context.FormApp = {ItemType: {LIST: 'LIST'}};
+context.atualizarCargosFormulario_({getItems: () => [question]});
+assert.deepEqual(choices, ['Magistrada ou Magistrado', 'Assessora ou Assessor', 'Juíza Leiga ou Juiz Leigo']);
+context.atualizarCargosFormulario_({getItems: () => [question]});
+assert.equal(choiceWrites, 1, 'repeat setup should not rewrite unchanged choices');
+assert.throws(() => context.atualizarCargosFormulario_({getItems: () => []}), /uma única vez/);
+assert.throws(() => context.atualizarCargosFormulario_({getItems: () => [question, question]}), /uma única vez/);
+assert.throws(() => context.atualizarCargosFormulario_({getItems: () => [{...question, getType: () => 'TEXT'}]}), /lista suspensa/);
+assert.equal(choiceWrites, 1);
+console.log('Role tests passed: old/new submissions, unit validation, existing-form update and repeated setup.');
+// Official form: collected email and unit request without the judge-only capacity.
+rows.length = 0;
+const liveLayout = Object.values(h).filter(v => v !== h.CAPACITY);
+liveLayout.splice(9, 0, h.CAPACITY);
+liveLayout.splice(13, 0, 'E-mail adicional (preservado)');
+rows.push([...liveLayout, 'FORM_RESPONSE_ID']);
+const requestWithoutCapacity = response('official-unit', {
+  [h.FUNCTION]: 'Magistrada ou Magistrado', [h.EMAIL]: '', [h.CAPACITY]: '',
+  [h.SKILLS]: ['Juizado Especial Cível', 'Juizado Especial Criminal']
+});
+requestWithoutCapacity.getRespondentEmail = () => 'Teste@tjes.jus.br';
+context.receberRespostaFormulario(event(requestWithoutCapacity));
+assert.equal(rows[1][1], 'teste@tjes.jus.br');
+assert.equal(rows[1][9], '');
+assert.equal(rows[1][12], 'Pendente');
+assert.equal(rows[1][13], '');
+assert.equal(rows[1][15], 'Juizado Especial Cível, Juizado Especial Criminal');
+const officialMap = context.mapaCabecalhos_(sheet);
+assert(context.ehSolicitacao_(rows[1], officialMap));
+assert.throws(() => context.receberRespostaFormulario(event(response('judge-missing-capacity', {[h.FUNCTION]: 'Juíza Leiga ou Juiz Leigo', [h.CAPACITY]: ''}))), /Quantidade/);
+context.receberRespostaFormulario(event(response('official-judge', {[h.FUNCTION]: 'Juíza Leiga ou Juiz Leigo', [h.UNIT]: '', [h.CAPACITY]: '20'})));
+assert(context.ehJuizLeigo_(rows[2], officialMap));
+assert.equal(rows[2][9], '20');
+context.receberRespostaFormulario(event(requestWithoutCapacity));
+assert.equal(rows.length, 3);
+console.log('Official form tests passed: collected email, optional unit quantity, checkbox values, 19-column source and website classification.');

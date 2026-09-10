@@ -1,5 +1,36 @@
 // Copie junto com PrepararPlanilha.gs para o projeto separado de manutenção.
 // Nunca implante este projeto como Web App.
+function cargosFormulario_() {
+  return ['Magistrada ou Magistrado', 'Assessora ou Assessor', 'Juíza Leiga ou Juiz Leigo'];
+}
+
+// Converte respostas antigas para os mesmos valores usados pelos filtros da planilha.
+function normalizarCargoFormulario_(valor) {
+  const cargo = String(valor || '').trim();
+  if (cargosFormulario_().includes(cargo)) return cargo;
+  const antigos = {
+    'Magistrado(a)': 'Magistrada ou Magistrado',
+    'Assessor(a)': 'Assessora ou Assessor',
+    'Juiz Leigo': 'Juíza Leiga ou Juiz Leigo',
+    'Juíza Leiga': 'Juíza Leiga ou Juiz Leigo'
+  };
+  if (Object.prototype.hasOwnProperty.call(antigos, cargo)) return antigos[cargo];
+  throw new Error('Cargo não reconhecido.');
+}
+
+// Atualiza somente as opções da pergunta existente. Não exclui respostas ou itens.
+function atualizarCargosFormulario_(form) {
+  const perguntas = form.getItems().filter(item => item.getTitle().trim() === JL_CONFIG.HEADERS.FUNCTION);
+  if (perguntas.length !== 1) throw new Error('A pergunta Cargo ou Função deve existir uma única vez.');
+  if (perguntas[0].getType() !== FormApp.ItemType.LIST) {
+    throw new Error('A pergunta Cargo ou Função deve ser uma lista suspensa. Nenhuma pergunta foi substituída.');
+  }
+  const item = perguntas[0].asListItem();
+  const cargos = cargosFormulario_();
+  const atuais = item.getChoices().map(choice => choice.getValue());
+  if (JSON.stringify(atuais) !== JSON.stringify(cargos)) item.setChoiceValues(cargos);
+}
+
 function autorizarFormulario_() {
   const email = String(Session.getEffectiveUser().getEmail() || '').trim().toLowerCase();
   const admins = propriedadeObrigatoria_('ADMIN_EMAILS').split(/[;,\n]+/).map(v => v.trim().toLowerCase());
@@ -168,6 +199,9 @@ function prepararFormularioTeste() {
       p.setProperty('TEST_FORM_READY', 'TRUE');
     }
 
+    atualizarCargosFormulario_(form);
+    ajustarCamposFormulario_(form);
+
     const triggers = ScriptApp.getProjectTriggers().filter(t =>
       t.getHandlerFunction() === 'receberRespostaFormulario' &&
       t.getTriggerSourceId() === id
@@ -260,16 +294,19 @@ function importarRespostaFormulario_(response) {
     const answers = {};
 
     response.getItemResponses().forEach(item => {
-      const title = item.getItem().getTitle();
+      const title = item.getItem().getTitle().trim();
 
       if (Object.prototype.hasOwnProperty.call(answers, title)) {
         throw new Error('Pergunta duplicada: ' + title);
       }
 
-      answers[title] = String(item.getResponse() || '').trim();
+      const resposta = item.getResponse();
+      answers[title] = (Array.isArray(resposta) ? resposta.join(', ') : String(resposta == null ? '' : resposta)).trim();
     });
 
     const h = JL_CONFIG.HEADERS;
+    const emailColetado = typeof response.getRespondentEmail === 'function' ? response.getRespondentEmail() : '';
+    answers[h.EMAIL] = String(emailColetado || answers[h.EMAIL] || '').trim().toLowerCase();
 
     if (
       !answers[h.NAME] ||
@@ -278,19 +315,11 @@ function importarRespostaFormulario_(response) {
       throw new Error('Nome ou e-mail inválido.');
     }
 
-    // Cargos padronizados aceitos pelo formulário.
-    const cargosPermitidos = [
-      'Magistrada ou Magistrado',
-      'Assessora ou Assessor',
-      'Juíza Leiga ou Juiz Leigo'
-    ];
-
-    if (!cargosPermitidos.includes(answers[h.FUNCTION])) {
-      throw new Error('Cargo não reconhecido.');
-    }
-
-    if (!/^[1-9][0-9]*$/.test(answers[h.CAPACITY] || '')) {
-      throw new Error('Quantidade inválida.');
+    answers[h.FUNCTION] = normalizarCargoFormulario_(answers[h.FUNCTION]);
+    const quantidade = answers[h.CAPACITY] || '';
+    const juiz = answers[h.FUNCTION] === 'Juíza Leiga ou Juiz Leigo';
+    if ((juiz && !quantidade) || (quantidade && !/^[1-9][0-9]*$/.test(quantidade))) {
+      throw new Error('Quantidade inválida. Juiz leigo deve informar um inteiro positivo; para a unidade, o campo é opcional.');
     }
 
     // Unidade obrigatória para magistratura e assessoria.
@@ -485,4 +514,33 @@ function diagnosticarFormularioTeste() {
   console.log(JSON.stringify(result));
 
   return result;
+}
+
+/**
+ * Ajusta os campos de texto do formulário de teste já criado.
+ * Não converte itens, não altera seções e não exclui respostas.
+ */
+function ajustarCamposFormulario_(form) {
+  const h = JL_CONFIG.HEADERS;
+  const regras = [
+    [h.UNIT, false, 'Obrigatório para solicitação da unidade. Juiz leigo pode deixar em branco.'],
+    [h.CAPACITY, false, 'Juiz leigo: informe a capacidade mensal como inteiro positivo. Unidade: preenchimento opcional.'],
+    [h.PHONE, true, 'Informe seu telefone para contato.']
+  ];
+  const itens = form.getItems();
+  const encontrados = regras.map(regra => {
+    const matches = itens.filter(item => item.getTitle().trim() === regra[0]);
+    if (matches.length > 1) throw new Error('Pergunta duplicada: ' + regra[0]);
+    return {regra: regra, item: matches[0]};
+  });
+  encontrados.forEach(({regra, item}) => {
+    // Formulários oficiais podem ter unidade como lista e navegação por seções.
+    // As regras condicionais desses itens permanecem com o administrador do Forms.
+    if (item && item.getType() === FormApp.ItemType.TEXT) {
+      const texto = item.asTextItem().setRequired(regra[1]).setHelpText(regra[2]);
+      if (regra[0] === h.CAPACITY) {
+        texto.setValidation(FormApp.createTextValidation().requireTextMatchesPattern('^[1-9][0-9]*$').build());
+      }
+    }
+  });
 }
