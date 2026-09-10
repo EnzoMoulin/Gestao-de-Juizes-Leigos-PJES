@@ -1,3 +1,21 @@
+## Recuperação dos cabeçalhos duplicados (10/09/2026)
+
+Substitua `FormularioTeste.gs` no projeto separado de manutenção pelo arquivo deste repositório, mantendo `PrepararPlanilha.gs`. Execute, nesta ordem:
+
+1. `recuperarIntegracaoTeste()`
+2. `reprocessarRespostasFormularioTeste()`
+3. `diagnosticarFormularioTeste()`
+
+A recuperação verifica o formulário de teste, o destino configurado, todos os 19 cabeçalhos e os valores de status da coluna M antes de alterar algo. Garante o gatilho e remove o vínculo nativo do Forms com a aba do site, se esse vínculo for confirmado. Corrige somente M1 para `Status do Atendimento:` e N1 para `E-mail adicional (preservado)`. Não move colunas, não apaga respostas e não muda o link público do formulário.
+
+Neste modo, o gatilho importa as respostas para `Respostas ao formulário 1`; o Forms conserva seu próprio histórico. Não vincule novamente essa aba pelo botão de planilha do Forms. O diagnóstico deve indicar `integracaoPorGatilho: true`, `destinoCorreto: true`, pelo menos um gatilho e zero respostas pendentes após reprocessamento sem falhas. Se houver falhas, o registro identifica cada resposta e o motivo.
+
+A recuperação não reprocessa automaticamente: o importador usa `FORM_RESPONSE_ID` para evitar duplicações. Linhas antigas sem esse ID não comprovam uma importação anterior; revise eventuais respostas já copiadas manualmente antes de reprocessá-las.
+
+Esta alteração precisa ser copiada e executada no Apps Script; atualizar o GitHub não atualiza a implantação Google automaticamente. A recuperação é limitada à planilha de teste autorizada e não deve ser usada na planilha oficial.
+
+---
+
 # Formulário → planilha de teste → site
 
 ## Situação verificada em 10/09/2026

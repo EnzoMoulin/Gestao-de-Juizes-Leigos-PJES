@@ -103,7 +103,7 @@ function prepararFormularioTeste() {
 
       form = FormApp.openById(id);
 
-      if (form.getDestinationId() !== source.book.getId()) {
+      if (!destinoFormularioCorreto_(form, source.book)) {
         throw new Error('O destino de respostas do formulário foi alterado.');
       }
 
@@ -503,7 +503,8 @@ function diagnosticarFormularioTeste() {
     formulario: form.getPublishedUrl(),
     planilha: source.book.getUrl(),
     abaDoSite: source.nome,
-    destinoCorreto: form.getDestinationId() === source.book.getId(),
+    destinoCorreto: destinoFormularioCorreto_(form, source.book),
+    integracaoPorGatilho: PropertiesService.getScriptProperties().getProperty('TEST_FORM_TRIGGER_ONLY') === 'TRUE',
     aceitaRespostas: form.isAcceptingResponses(),
     gatilhosDaConta: triggers.length,
     respostasNoFormulario: responses.length,
@@ -543,4 +544,75 @@ function ajustarCamposFormulario_(form) {
       }
     }
   });
+}
+
+
+// No modo exclusivo, somente o gatilho escreve na aba usada pelo site.
+function destinoFormularioCorreto_(form, book) {
+  const exclusivo = PropertiesService.getScriptProperties().getProperty('TEST_FORM_TRIGGER_ONLY') === 'TRUE';
+  return exclusivo ? !form.getDestinationId() : form.getDestinationId() === book.getId();
+}
+
+/**
+ * Recuperação específica da planilha Teste de 19 colunas (A:S).
+ * Preserva todas as linhas e posições; corrige apenas M1 e N1.
+ * Execute antes de reprocessarRespostasFormularioTeste().
+ */
+function recuperarIntegracaoTeste() {
+  autorizarFormulario_();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const p = PropertiesService.getScriptProperties();
+    const id = propriedadeObrigatoria_('SPREADSHEET_ID');
+    const nome = String(p.getProperty('SOURCE_SHEET') || JL_CONFIG.SOURCE_SHEET).trim();
+    if (id !== '1mkPVag7GJPdSbQoJMvjv2J5SvwmRgtxy73xr_WHKbek' || nome !== 'Respostas ao formulário 1' ||
+        p.getProperty('TEST_FORM_SPREADSHEET_ID') !== id || p.getProperty('TEST_FORM_SOURCE_SHEET') !== nome) {
+      throw new Error('Recuperação permitida somente na planilha Teste e no destino já configurado.');
+    }
+    const book = SpreadsheetApp.openById(id);
+    const sheet = book.getSheetByName(nome);
+    if (!sheet) throw new Error('Aba de teste ausente.');
+    const h = JL_CONFIG.HEADERS;
+    const esperado = [h.TIMESTAMP, h.EMAIL, h.NAME, h.PHONE, h.FUNCTION, h.UNIT,
+      h.CASES, h.GUIDANCE, h.PREFERRED_JUDGE, h.CAPACITY, h.SUBJECTS, h.PRODUCTIVITY,
+      h.STATUS, 'E-mail adicional (preservado)', h.NOTES, h.SKILLS,
+      h.ASSIGNED_JUDGE, h.ASSIGNED_AT, 'FORM_RESPONSE_ID'];
+    const atual = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0].map(normalizarCabecalhoOrigem_);
+    if (atual.length !== esperado.length || atual.some((v, i) =>
+      i === 12 ? ![h.STATUS, h.SKILLS].includes(v) :
+      i === 13 ? ![h.EMAIL, esperado[i]].includes(v) : v !== esperado[i])) {
+      throw new Error('A estrutura mudou. Nenhuma coluna foi alterada; revise os cabeçalhos A:S.');
+    }
+    const count = sheet.getLastRow() - 1;
+    if (count > 0 && sheet.getRange(2, 13, count, 1).getDisplayValues().some(row =>
+      !['', 'Pendente', 'Em atendimento', 'Concluído', 'Cancelado'].includes(String(row[0]).trim()))) {
+      throw new Error('A coluna M contém valores diferentes dos status esperados. Nenhum cabeçalho foi alterado.');
+    }
+    const form = FormApp.openById(propriedadeObrigatoria_('TEST_FORM_ID'));
+    if (form.getPublishedUrl().split('?')[0] !== 'https://docs.google.com/forms/d/e/1FAIpQLSenUp7ShEu8a13psWqG7on_Ru5gSox4hgADY1HL_Pxymevw4A/viewform') {
+      throw new Error('O formulário configurado não é o formulário de teste autorizado.');
+    }
+    const destino = form.getDestinationId();
+    const vinculo = sheet.getFormUrl();
+    if (destino && (destino !== id || !vinculo || FormApp.openByUrl(vinculo).getId() !== form.getId())) {
+      throw new Error('O vínculo nativo não aponta para esta aba e este formulário. Nenhum vínculo foi removido.');
+    }
+    if (!destino && vinculo) throw new Error('A aba está vinculada a outro formulário.');
+    const triggers = ScriptApp.getProjectTriggers().filter(t =>
+      t.getHandlerFunction() === 'receberRespostaFormulario' && t.getTriggerSourceId() === form.getId());
+    // Garante o importador antes de desligar a escrita nativa concorrente.
+    if (!triggers.length) ScriptApp.newTrigger('receberRespostaFormulario').forForm(form).onFormSubmit().create();
+    // Registrar primeiro permite retomar após falha parcial. As respostas permanecem no Forms.
+    p.setProperty('TEST_FORM_TRIGGER_ONLY', 'TRUE');
+    if (destino) form.removeDestination();
+    if (form.getDestinationId() || sheet.getFormUrl()) {
+      throw new Error('O vínculo ainda não foi liberado. Execute recuperarIntegracaoTeste novamente.');
+    }
+    sheet.getRange(1, 13, 1, 2).setValues([[esperado[12], esperado[13]]]);
+    SpreadsheetApp.flush();
+    fonteFormulario_();
+    console.log('Cabeçalhos corrigidos; respostas preservadas. Execute reprocessarRespostasFormularioTeste e depois diagnosticarFormularioTeste.');
+    return {cabecalhosCorrigidos: true, integracaoPorGatilho: true, abaDoSite: nome};
+  } finally { lock.releaseLock(); }
 }
