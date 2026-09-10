@@ -33,7 +33,15 @@ function atualizarFormularioPorCargo() {
     if (!p.getProperty('TEST_FORM_LAYOUT_RESTORE_OPEN')) p.setProperty('TEST_FORM_LAYOUT_RESTORE_OPEN',aberto?'TRUE':'FALSE');
     form.setAcceptingResponses(false);
     // Falha parcial mantém fechado. Nova execução retoma sem excluir perguntas.
-    const converter = i => i[metodos[String(i.getType())]]();
+    const converter = i => {
+      const metodo = metodos[String(i.getType())];
+      if (!metodo) throw new Error('Tipo de pergunta não suportado: ' + i.getType());
+      // getItems() retorna Item genérico; addTextItem/addCheckboxItem retornam
+      // objetos já especializados, que não expõem os métodos as...Item().
+      if (typeof i[metodo] === 'function') return i[metodo]();
+      if (typeof i.setRequired === 'function') return i;
+      throw new Error('Não foi possível editar a pergunta: ' + i.getTitle());
+    };
     const secao = titulo => buscar(titulo).length ? buscar(titulo)[0].asPageBreakItem() : form.addPageBreakItem().setTitle(titulo);
     const unidadePage=secao(titulos[0]), juizPage=secao(titulos[1]), historicoPage=secao(titulos[2]);
     const obter = (key,tipo,obrigatorio) => {

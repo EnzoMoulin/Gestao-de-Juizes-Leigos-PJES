@@ -3,7 +3,7 @@ const props={TEST_FORM_ID:'test',TEST_FORM_TRIGGER_ONLY:'TRUE'};
 const items=[];let accepting=true,seq=0;
 class Item {
  constructor(type,title=''){this.type=type;this.title=title;this.id=++seq;items.push(this);}
- getType(){return this.type;} getTitle(){return this.title;} getId(){return this.id;} getIndex(){return items.indexOf(this);}
+ getType(){return this.type;} getTitle(){return this.title;} getId(){return this.id;} getIndex(){return items.findIndex(i=>i.id===this.id);}
  setTitle(v){this.title=v;return this;} setRequired(v){this.required=v;return this;} setHelpText(v){this.help=v;return this;}
  setChoiceValues(v){this.values=v;return this;} setValidation(v){this.validation=v;return this;}
  setGoToPage(v){this.go=v;return this;} createChoice(value,page){return {value,page};} setChoices(v){this.choices=v;return this;}
@@ -12,7 +12,12 @@ class Item {
 }
 const form={getItems:()=>items.slice(),getPublishedUrl:()=> 'https://docs.google.com/forms/d/e/1FAIpQLSenUp7ShEu8a13psWqG7on_Ru5gSox4hgADY1HL_Pxymevw4A/viewform',getEditUrl:()=> 'edit',
  isAcceptingResponses:()=>accepting,setAcceptingResponses:v=>{accepting=v;},moveItem:(a,b)=>{items.splice(b,0,items.splice(a,1)[0]);}};
-for(const [method,type] of Object.entries({addTextItem:'TEXT',addListItem:'LIST',addParagraphTextItem:'PARAGRAPH_TEXT',addCheckboxItem:'CHECKBOX',addPageBreakItem:'PAGE_BREAK'}))form[method]=()=>new Item(type);
+for(const [method,type] of Object.entries({addTextItem:'TEXT',addListItem:'LIST',addParagraphTextItem:'PARAGRAPH_TEXT',addCheckboxItem:'CHECKBOX',addPageBreakItem:'PAGE_BREAK'}))form[method]=()=>new Proxy(new Item(type), {
+ get(target, key, receiver) {
+   if (typeof key === 'string' && key.startsWith('as')) return undefined;
+   return Reflect.get(target,key,receiver);
+ }
+});
 const context=vm.createContext({console,PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k],setProperty:(k,v)=>props[k]=v,deleteProperty:k=>delete props[k]})},
  LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},FormApp:{openById:()=>form,ItemType:{LIST:'LIST',PAGE_BREAK:'PAGE_BREAK'},PageNavigationType:{SUBMIT:'SUBMIT'},createTextValidation:()=>({requireTextMatchesPattern:()=>({build:()=>({})})})}});
 vm.runInContext(fs.readFileSync('maintenance/PrepararPlanilha.gs','utf8'),context);
