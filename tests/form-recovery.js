@@ -6,7 +6,7 @@ const rows = [];
 const sheet = {getLastColumn:()=>rows[0].length,getLastRow:()=>rows.length,getFormUrl:()=>linked?'edit-url':null,
  getRange(r,c,n=1,m=1){return {getDisplayValues:()=>rows.slice(r-1,r-1+n).map(row=>row.slice(c-1,c-1+m).map(String)),setValues(values){mutations++;values.forEach((row,i)=>row.forEach((v,j)=>rows[r-1+i][c-1+j]=v));}};}};
 const book = {getId:()=>id,getSheetByName:()=>sheet};
-const form = {getId:()=> 'form',getDestinationId:()=>destination,
+const form = {getId:()=> 'form',getDestinationId:()=>{if (!destination) throw new Error('The form currently has no response destination.'); return destination;},
  getPublishedUrl:()=> 'https://docs.google.com/forms/d/e/1FAIpQLSenUp7ShEu8a13psWqG7on_Ru5gSox4hgADY1HL_Pxymevw4A/viewform',
  removeDestination(){assert(triggers.length);mutations++;destination=null;linked=false;}};
 const context=vm.createContext({console,Session:{getEffectiveUser:()=>({getEmail:()=>props.ADMIN_EMAILS})},
@@ -32,3 +32,8 @@ assert(context.destinoFormularioCorreto_(form,book));
 context.recuperarIntegracaoTeste();assert.equal(triggers.length,1);assert.equal(JSON.stringify(rows.slice(1)),before);
 destination=id;assert(!context.destinoFormularioCorreto_(form,book));
 console.log('Recovery tests passed: preservation, repeat execution, trigger installed before unlink, schema/status guards and wrong destination rejected.');
+
+assert.throws(() => context.obterDestinoFormulario_({getDestinationId(){throw new Error('Access denied');}}), /Access denied/);
+assert.throws(() => context.obterDestinoFormulario_({getDestinationId(){throw new Error('Service unavailable');}}), /Service unavailable/);
+assert.equal(context.obterDestinoFormulario_({getDestinationId(){return null;}}), null);
+console.log('No-destination exception handled; unrelated service errors preserved.');

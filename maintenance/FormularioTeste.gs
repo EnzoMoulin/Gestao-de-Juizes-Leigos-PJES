@@ -550,7 +550,7 @@ function ajustarCamposFormulario_(form) {
 // No modo exclusivo, somente o gatilho escreve na aba usada pelo site.
 function destinoFormularioCorreto_(form, book) {
   const exclusivo = PropertiesService.getScriptProperties().getProperty('TEST_FORM_TRIGGER_ONLY') === 'TRUE';
-  return exclusivo ? !form.getDestinationId() : form.getDestinationId() === book.getId();
+  return exclusivo ? !obterDestinoFormulario_(form) : obterDestinoFormulario_(form) === book.getId();
 }
 
 /**
@@ -593,7 +593,7 @@ function recuperarIntegracaoTeste() {
     if (form.getPublishedUrl().split('?')[0] !== 'https://docs.google.com/forms/d/e/1FAIpQLSenUp7ShEu8a13psWqG7on_Ru5gSox4hgADY1HL_Pxymevw4A/viewform') {
       throw new Error('O formulário configurado não é o formulário de teste autorizado.');
     }
-    const destino = form.getDestinationId();
+    const destino = obterDestinoFormulario_(form);
     const vinculo = sheet.getFormUrl();
     if (destino && (destino !== id || !vinculo || FormApp.openByUrl(vinculo).getId() !== form.getId())) {
       throw new Error('O vínculo nativo não aponta para esta aba e este formulário. Nenhum vínculo foi removido.');
@@ -606,7 +606,7 @@ function recuperarIntegracaoTeste() {
     // Registrar primeiro permite retomar após falha parcial. As respostas permanecem no Forms.
     p.setProperty('TEST_FORM_TRIGGER_ONLY', 'TRUE');
     if (destino) form.removeDestination();
-    if (form.getDestinationId() || sheet.getFormUrl()) {
+    if (obterDestinoFormulario_(form) || sheet.getFormUrl()) {
       throw new Error('O vínculo ainda não foi liberado. Execute recuperarIntegracaoTeste novamente.');
     }
     sheet.getRange(1, 13, 1, 2).setValues([[esperado[12], esperado[13]]]);
@@ -615,4 +615,17 @@ function recuperarIntegracaoTeste() {
     console.log('Cabeçalhos corrigidos; respostas preservadas. Execute reprocessarRespostasFormularioTeste e depois diagnosticarFormularioTeste.');
     return {cabecalhosCorrigidos: true, integracaoPorGatilho: true, abaDoSite: nome};
   } finally { lock.releaseLock(); }
+}
+
+
+// O serviço lança esta exceção específica quando o vínculo já foi removido.
+// Erros de acesso, autorização e falhas do serviço continuam sendo propagados.
+function obterDestinoFormulario_(form) {
+  try {
+    return form.getDestinationId() || null;
+  } catch (error) {
+    const mensagem = String(error && error.message || error).replace(/^Exception:\s*/, '').trim();
+    if (mensagem === 'The form currently has no response destination.') return null;
+    throw error;
+  }
 }
